@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    @apply bg-bg-primary text-text-primary font-body antialiased h-screen overflow-hidden;
+  }
+}
+
+/* Custom Scrollbar for a premium look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-green-core/40 rounded-pill;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-green-core/80;
+}
