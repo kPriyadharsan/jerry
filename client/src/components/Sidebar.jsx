@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { MessageSquare, CheckSquare, BarChart2, Settings, Brain, LogOut } from 'lucide-react';
+import { MessageSquare, CheckSquare, BarChart2, Settings, Brain, LogOut, Mic2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuthStore } from '../store/authStore';
 
-export function cn(...inputs) {
+function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
 
@@ -21,6 +21,7 @@ export default function Sidebar() {
   const links = [
     { to: '/', icon: <MessageSquare size={20} />, label: 'Chat' },
     { to: '/tasks', icon: <CheckSquare size={20} />, label: 'Daily Tasks' },
+    { to: '/voice-practice', icon: <Mic2 size={20} />, label: 'Voice Practice' },
     { to: '/dashboard', icon: <BarChart2 size={20} />, label: 'Dashboard' },
     { to: '/settings', icon: <Settings size={20} />, label: 'Settings' },
   ];

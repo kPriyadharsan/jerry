@@ -29,6 +29,21 @@ export async function jerryChat(message) {
 }
 
 /**
+ * FETCH CHAT HISTORY — Get last 20 messages.
+ */
+export async function fetchChatHistory() {
+  const token = localStorage.getItem('token');
+  const res = await fetch(`${SERVER_URL}/api/chat/history`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  if (!res.ok) throw new Error('Failed to fetch chat history');
+  const data = await res.json();
+  return data.messages; // Returns [{ role, content, timestamp }]
+}
+
+
+/**
  * RAW GEMINI CHAT — Context-free fast response.
  */
 export async function chatAI(prompt) {
@@ -44,9 +59,13 @@ export async function analysisAI(prompt) {
 
 // Internal proxy helper
 async function callProxy(endpoint, prompt) {
+  const token = localStorage.getItem('token');
   const res = await fetch(`${SERVER_URL}/api/gemini/${endpoint}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
     body: JSON.stringify({ prompt }),
   });
 

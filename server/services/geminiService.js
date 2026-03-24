@@ -11,7 +11,8 @@ const semanticCache = new Map();
 const CACHE_TTL = 3600 * 1000; // 1 hour
 
 function getPromptHash(prompt) {
-  return crypto.createHash('md5').update(prompt).digest('hex');
+  const str = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
+  return crypto.createHash('md5').update(str).digest('hex');
 }
 
 // ─── Configuration ───────────────────────────────────────────────────────────
@@ -19,18 +20,21 @@ const KEYS = [
   process.env.GEMINI_KEY1,
   process.env.GEMINI_KEY2,
   process.env.GEMINI_KEY3,
+  process.env.ENGLISH_GEMINI_KEY1,
+  process.env.ENGLISH_GEMINI_KEY2,
 ].filter(Boolean);
 
-const MODELS = [
-  process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash-001'
-];
+// Model list is controlled entirely via .env → GEMINI_MODELS (comma-separated, priority order)
+// e.g.  GEMINI_MODELS=gemini-2.5-flash-lite,gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash
+const MODELS = (process.env.GEMINI_MODELS || 'gemini-2.0-flash')
+  .split(',')
+  .map(m => m.trim())
+  .filter(Boolean);
 
 const DAILY_TOKEN_BUDGET = 950000; // Limit per key before switching to fallback (safety buffer for 1M)
 const CIRCUIT_BREAKER_FAILURES = 5;
-const COOLDOWN_BREAKER = 130 * 1000; // 130s longer cooldown for breaker trips
-const RATE_LIMIT_COOLDOWN = 65 * 1000; // 65s for 429 errors
+const COOLDOWN_BREAKER = 60 * 1000; // Reduced cooldown for breaker trips to 60s
+const RATE_LIMIT_COOLDOWN = 30 * 1000; // Reduced 429 cooldown to 30s for more aggressive recovery
 
 // ─── Key Performance Tracking ───────────────────────────────────────────────
 const keyRegistry = KEYS.map(key => ({
@@ -48,9 +52,9 @@ const keyRegistry = KEYS.map(key => ({
 // ─── Priority Queues ────────────────────────────────────────────────────────
 // p-queue allows us to manage concurrency per priority lane.
 const queues = {
-  high:   new PQueue({ concurrency: 10 }), // Real-time chat
-  normal: new PQueue({ concurrency: 5 }),  // Automatic tasks
-  low:    new PQueue({ concurrency: 2 })   // Passive analysis
+  high:   new PQueue({ concurrency: 5 }),  // Lowered from 10 to prevent rapid 429s
+  normal: new PQueue({ concurrency: 3 }),  // Adjusted for balance
+  low:    new PQueue({ concurrency: 1 })   // Minimum for background tasks
 };
 
 // ─── Weighted Selection Logic ────────────────────────────────────────────────
@@ -65,13 +69,21 @@ function selectKey() {
     return true;
   });
 
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) {
+    const sortedByCooldown = [...keyRegistry].sort((a, b) => a.cooldownUntil - b.cooldownUntil);
+    const bestFallback = sortedByCooldown.find(k => k.budgetUsed < DAILY_TOKEN_BUDGET);
+    if (bestFallback) {
+       console.log(`[KeySelector] All keys cooling down. Using best fallback: ...${bestFallback.key.slice(-6)}`);
+       return bestFallback;
+    }
+    return null;
+  }
 
   // Scoring algorithm: higher is better
   const scored = candidates.map(k => {
     const budgetWeight = (DAILY_TOKEN_BUDGET - k.budgetUsed) / DAILY_TOKEN_BUDGET;
-    const reliabilityWeight = 1 - (k.errorRate / 10); // Penalty for recent errors
-    const recencyWeight = (now - k.lastUsed) / 10000; // Bonus for not being used recently
+    const reliabilityWeight = 1 - (k.errorRate / 10);
+    const recencyWeight = (now - k.lastUsed) / 10000;
     
     return { 
       data: k, 
@@ -92,11 +104,19 @@ async function execGeminiRequest(prompt, k, model) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${k.key}`;
   
   try {
+    const parts = Array.isArray(prompt) ? prompt : [{ text: prompt }];
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        contents: [{ parts }],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }
+        ]
       }),
     });
 
@@ -109,7 +129,9 @@ async function execGeminiRequest(prompt, k, model) {
       k.cooldownUntil = Date.now() + RATE_LIMIT_COOLDOWN;
       k.errorRate = (k.errorRate * 0.7) + 0.3; // Weight local spike
       metrics.emit('request', { key: k.key.slice(-6), model, latency, success: false, status: 429 });
-      throw new Error('Rate limited');
+      const err = new Error('Rate limited');
+      err.status = 429;
+      throw err;
     }
 
     if (!res.ok) {
@@ -117,18 +139,20 @@ async function execGeminiRequest(prompt, k, model) {
       k.errorRate = (k.errorRate * 0.8) + 0.2;
       if (k.failureCount >= CIRCUIT_BREAKER_FAILURES) {
         k.cooldownUntil = Date.now() + COOLDOWN_BREAKER;
-        console.warn(`[CircuitBreaker] Key ending ...${k.key.slice(-6)} tripped. Cooling down for 130s.`);
+        console.warn(`[CircuitBreaker] Key ending ...${k.key.slice(-6)} tripped. Cooling down.`);
       }
       const errBody = await res.text().catch(() => 'Unknown Error');
       metrics.emit('request', { key: k.key.slice(-6), model, latency, success: false, status: res.status });
-      throw new Error(`Gemini error ${res.status}: ${errBody}`);
+      const err = new Error(`Gemini error ${res.status}: ${errBody}`);
+      err.status = res.status;
+      throw err;
     }
 
     const data = await res.json();
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     
     // Update budget and success metrics
-    k.budgetUsed += estimateTokens(prompt + text);
+    k.budgetUsed += estimateTokens(typeof prompt === 'string' ? (prompt + text) : text);
     k.successCount++;
     k.failureCount = 0; // Reset breaker on success
     k.errorRate = k.errorRate * 0.5; // Quickly recover reliability score
@@ -138,15 +162,15 @@ async function execGeminiRequest(prompt, k, model) {
 
   } catch (err) {
     const latency = Date.now() - start;
-    if (!err.rateLimit) {
-      metrics.emit('request', { key: k.key.slice(-6), model, latency, success: false, status: 'EXCEPTION' });
+    if (err.status !== 429) {
+      metrics.emit('request', { key: k.key.slice(-6), model, latency, success: false, status: err.status || 'EXCEPTION' });
     }
     throw err;
   }
 }
 
 // ─── Main Dispatcher ────────────────────────────────────────────────────────
-async function callWithOrchestration(prompt, priority = 'normal', retries = 3) {
+async function callWithOrchestration(prompt, priority = 'normal', retries = 5, customModels = null) {
   // 1. Check Semantic Cache
   const hash = getPromptHash(prompt);
   const cached = semanticCache.get(hash);
@@ -160,10 +184,11 @@ async function callWithOrchestration(prompt, priority = 'normal', retries = 3) {
   return queue.add(async () => {
     for (let attempt = 0; attempt < retries; attempt++) {
       const k = selectKey();
-      const model = MODELS[attempt % MODELS.length];
+      const modelList = customModels || MODELS;
+      const model = modelList[attempt % modelList.length] || modelList[0];
 
       if (!k) {
-        const waitTime = (attempt + 1) * 3000;
+        const waitTime = (attempt + 1) * 2000;
         await sleep(waitTime);
         continue;
       }
@@ -174,19 +199,24 @@ async function callWithOrchestration(prompt, priority = 'normal', retries = 3) {
         semanticCache.set(hash, { text: result, timestamp: Date.now() });
         return result;
       } catch (err) {
-        if ((err.message.includes('Rate limited') || err.status === 429) && attempt < retries - 1) {
+        // Retry on 429, 5xx, AND 404/400 (if a model name from .env is invalid or not yet available)
+        const isRetryable = err.status === 429 || (err.status >= 500 && err.status < 600) || err.status === 404 || err.status === 400 || !err.status;
+        if (isRetryable && attempt < retries - 1) {
+          const backoff = (attempt + 1) * 1000;
+          await sleep(backoff);
           continue; 
         }
         throw err;
       }
     }
-    throw new Error('Jerry AI is temporarily exhausted across all neural pathways. Please wait.');
+    throw new Error('All neural pathways are saturated. Jerry is resting for a split second. Please retry now.');
   });
 }
+
 
 // ── Public API — used by aiService.js ────────────────────────────────────────
 
 const chatAI = (prompt) => callWithOrchestration(prompt, 'high');
 const analysisAI = (prompt) => callWithOrchestration(prompt, 'normal');
 
-module.exports = { chatAI, analysisAI, metrics };
+module.exports = { chatAI, analysisAI, callWithOrchestration, metrics };

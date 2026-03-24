@@ -8,9 +8,14 @@ exports.calculateScore = (data) => {
     apps_questions: 10 // Default target for questions
   };
 
-  // 1. DSA (30 points) - 1 question = 15 points (if target is 2)
+  // 1. DSA (30 points) - Factor in difficulty
   if (data.dsa && data.dsa.problems > 0) {
-    let dsaScore = (data.dsa.problems / targets.dsa) * 30; 
+    const multipliers = { 'Easy': 0.7, 'Medium': 1.0, 'Hard': 1.5 };
+    const multiplier = multipliers[data.dsa.difficulty] || 1.0;
+    
+    let effectiveProblems = data.dsa.problems * multiplier;
+    let dsaScore = (effectiveProblems / targets.dsa) * 30;
+    
     finalScore += Math.min(dsaScore, 30);
   }
 
@@ -33,8 +38,12 @@ exports.calculateScore = (data) => {
   }
 
   // 3. English (40 points)
-  if (data.english && data.english.minutes > 0) {
-    let engScore = (data.english.minutes / targets.english) * 40; 
+  if (data.english && (data.english.minutes > 0 || data.english.avgOverallScore > 0)) {
+    // 20 points for effort (minutes) + 20 points for quality (AI average score)
+    let effort = (data.english.minutes / targets.english) * 20;
+    let quality = ((data.english.avgOverallScore || 0) / 100) * 20;
+    
+    let engScore = effort + quality;
     finalScore += Math.min(engScore, 40);
   }
 

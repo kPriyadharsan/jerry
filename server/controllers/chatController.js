@@ -2,8 +2,11 @@ const User = require('../models/User');
 const DailyLog = require('../models/DailyLog');
 const Memory = require('../models/Memory');
 const ChatHistory = require('../models/ChatHistory');
+const EnglishSession = require('../models/EnglishSession');
 const aiService = require('../services/aiService');
 const taskService = require('../services/taskService');
+const aiRouter = require('../services/ai/aiRouter');
+const intentService = require('../services/intentService');
 
 exports.handleChat = async (req, res) => {
   try {
@@ -27,8 +30,9 @@ exports.handleChat = async (req, res) => {
     // 3. Fetch Patterns/Memories
     const patterns = await Memory.find({ userId });
 
-    // 4. Extract Meaning
-    const extractedIntent = await aiService.extractMeaning(message);
+    // 4. Extract Meaning with DB context
+    const intentData = await intentService.detectIntent(message, { user, recentLogs });
+    const intent = intentData.intent; // e.g. 'dsa', 'english', etc.
 
     // 5. Fetch Chat History
     let chatHistory = await ChatHistory.findOne({ userId });
@@ -44,27 +48,50 @@ exports.handleChat = async (req, res) => {
     // 6. Fetch Today's Task Status
     const taskStatus = await taskService.getTaskStatus(userId);
 
-    // 7. Build Prompt and Call Gemini
-    const aiResponse = await aiService.generateResponse({
+    // 7. Fetch Latest English session
+    const lastEnglishSession = await EnglishSession.findOne({ userId }).sort({ createdAt: -1 });
+
+    // 8. Call AI Router pipeline
+    const userData = {
       user,
       recentLogs,
       patterns,
+      taskStatus,
+      lastEnglishSession
+    };
+
+    const aiResponse = await aiRouter({
+      intent,
       message,
-      previousMessages,
-      extractedIntent,
-      taskStatus
+      userData,
+      context: { previousMessages }
     });
 
-    // 8. Save Chat
+    // 9. Save Chat
     chatHistory.messages.push({ role: 'user', content: message });
     chatHistory.messages.push({ role: 'assistant', content: aiResponse });
     await chatHistory.save();
 
-    // 9. Return Response
-    res.json({ response: aiResponse, intent: extractedIntent });
+    // 10. Return Response
+    res.json({ response: aiResponse, intent: intentData });
 
   } catch (error) {
     console.error('Chat error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+exports.getChatHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const chatHistory = await ChatHistory.findOne({ userId });
+
+    if (!chatHistory) {
+      return res.json({ messages: [] });
+    }
+
+    res.json({ messages: chatHistory.messages });
+  } catch (error) {
+    console.error('Get Chat History error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

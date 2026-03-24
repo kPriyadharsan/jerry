@@ -1,14 +1,16 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Activity, Flame, TrendingDown, Info, ShieldAlert } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Activity, Flame, TrendingDown, Info, ShieldAlert, Zap } from 'lucide-react';
 
 export default function Dashboard() {
   const { todayScore, streak, weakArea, weeklyScores, patternInsights, fetchDashboardData, pendingTasks, completedTasks } = useAppStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
   const totalPossible = (pendingTasks?.length || 0) + (completedTasks?.length || 0);
   const progressPercent = totalPossible > 0 ? Math.round((completedTasks?.length / totalPossible) * 100) : 0;
@@ -74,27 +76,72 @@ export default function Dashboard() {
 
         {/* Charts & Today Summary */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-bg-glass backdrop-blur-md rounded-lg border border-green-core/20 shadow-card p-6">
-            <h2 className="text-lg font-semibold text-text-primary mb-6">Last 7 Days Performance</h2>
-            <div className="h-72 w-full">
+          <div className="lg:col-span-2 bg-bg-glass backdrop-blur-md rounded-lg border border-green-core/20 shadow-card p-6 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-green-core/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-text-primary">Performance Trajectory</h2>
+              <div className="flex items-center gap-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                <div className="flex items-center gap-1.5 font-bold text-green-core">
+                  <div className="w-2 h-2 rounded-full bg-green-core shadow-glow" /> Status: Optimizing
+                </div>
+              </div>
+            </div>
+            
+            <div className="h-72 w-full pr-2">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={weeklyScores} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(76,221,30,0.1)" vertical={false} />
-                  <XAxis dataKey="day" stroke="#3a5a3a" tick={{fill: '#3a5a3a'}} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis stroke="#3a5a3a" tick={{fill: '#3a5a3a'}} axisLine={false} tickLine={false} dx={-10} />
+                <AreaChart data={weeklyScores} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                  <defs>
+                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4cdd1e" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#4cdd1e" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(76,221,30,0.05)" vertical={false} />
+                  <XAxis 
+                    dataKey="day" 
+                    stroke="#3a5a3a" 
+                    tick={{fill: '#7a9a7a', fontSize: 11, fontWeight: 600}} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    dy={10} 
+                  />
+                  <YAxis 
+                    stroke="#3a5a3a" 
+                    tick={{fill: '#7a9a7a', fontSize: 11, fontWeight: 600}} 
+                    axisLine={false} 
+                    tickLine={false} 
+                    dx={-5}
+                    domain={[0, 100]}
+                  />
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#0d1a0d', borderColor: '#4cdd1e', borderRadius: '12px', color: '#d6f5cb' }}
-                    itemStyle={{ color: '#4cdd1e' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="bg-black-spore/95 backdrop-blur-md border border-green-core/30 p-3 rounded-xl shadow-glow ring-1 ring-white/5">
+                            <p className="text-[10px] font-black text-green-core/60 uppercase tracking-tighter mb-1">{payload[0].payload.day}</p>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-lg font-black text-white">{payload[0].value}</span>
+                              <span className="text-[10px] font-bold text-text-muted">SCORE</span>
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                    cursor={{ stroke: '#4cdd1e', strokeWidth: 1, strokeDasharray: '4 4' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="score" 
-                    stroke="#4cdd1e" 
-                    strokeWidth={4} 
-                    dot={{ fill: '#eaf3ea', stroke: '#4cdd1e', strokeWidth: 3, r: 6 }} 
-                    activeDot={{ r: 8, fill: '#4cdd1e', stroke: '#1a2e1a', strokeWidth: 2 }}
+                  <Area
+                    type="monotone"
+                    dataKey="score"
+                    stroke="#4cdd1e"
+                    strokeWidth={3}
+                    fillOpacity={1}
+                    fill="url(#colorScore)"
+                    animationDuration={2000}
+                    animationEasing="ease-in-out"
+                    activeDot={{ r: 6, fill: '#4cdd1e', stroke: '#fff', strokeWidth: 2, className: "shadow-glow" }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </div>
@@ -137,9 +184,21 @@ export default function Dashboard() {
                    <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Pending</h4>
                    {pendingTasks?.length > 0 ? (
                      pendingTasks.slice(0, 3).map((t, i) => (
-                       <div key={i} className="flex items-center gap-2 text-xs text-text-muted">
-                         <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                         <span className="truncate">{t.title}</span>
+                       <div key={i} className="flex items-center justify-between gap-2 text-xs text-text-muted group/task">
+                         <div className="flex items-center gap-2 truncate">
+                           <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
+                           <span className="truncate">{t.title}</span>
+                         </div>
+                         <button 
+                           onClick={() => {
+                             useAppStore.getState().sendChatMessage(`I need help with this ${t.type} problem: ${t.title}. Please provide a structured analysis and next steps.`);
+                             navigate('/');
+                           }}
+                           className="shrink-0 p-1 hover:text-green-core opacity-0 group-hover/task:opacity-100 transition-opacity"
+                           title="Ask Jerry"
+                         >
+                           <Zap size={12} />
+                         </button>
                        </div>
                      ))
                    ) : (

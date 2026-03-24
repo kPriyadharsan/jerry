@@ -10,11 +10,15 @@ const examModeRoutes = require('./routes/examModeRoutes');
 const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
+const englishRoutes = require('./routes/englishRoutes');
+
+const rateLimit = require('express-rate-limit');
 
 const { initCronJobs } = require('./services/cronService');
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
 
 // Connect to MongoDB
@@ -47,7 +51,16 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/task', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/exam-mode', examModeRoutes);
-app.use('/api/gemini', geminiRoutes);   // Gemini proxy — keys are server-side only
+
+const geminiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // limit each IP to 20 requests per minute
+  message: {
+    error: "Too many requests. Please slow down."
+  }
+});
+app.use('/api/gemini', geminiLimiter, geminiRoutes);   // Gemini proxy — keys are server-side only
+app.use('/api/english', englishRoutes);
 
 // Initialize Cron Jobs
 initCronJobs();

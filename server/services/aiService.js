@@ -14,61 +14,145 @@ exports.extractMeaning = async (text) => {
 };
 
 // ── Prompt builder ───────────────────────────────────────────────────────────
-exports.buildPrompt = (user, recentLogs, patterns, previousMessages, message, taskStatus) => {
-  const profile = `User Profile:
-Name: ${user.name}
-Goal: ${user.goal}
-Skills: ${(user.skills || []).join(', ')}
-Weaknesses: ${(user.weaknesses || []).join(', ')}
-Exam Mode: ${user.examMode}`;
+// ── Adaptive Tier Calculation ────────────────────────────────────────────────
+const calculateUserLevel = (recentLogs, streak) => {
+  const last5Days = (recentLogs || []).slice(0, 5);
+  const activeDays = last5Days.filter(log => (log.dsa?.problems > 0 || log.english?.minutes > 0 || log.dev?.minutes > 0)).length;
+  
+  // Independent DSA performance check
+  const independentSolvedCount = last5Days.filter(log => log.dsa?.problems > 0 && log.dsa?.solvedWithoutHelp).length;
 
-  const logs = `Recent Activity (Last 7 Days):
-${recentLogs.map((log, i) =>
-  `Day ${i + 1}: Score ${log.score}, DSA Problems: ${log.dsa?.problems || 0}, Dev Mins: ${log.dev?.minutes || 0}, English Mins: ${log.english?.minutes || 0}`
-).join('\n')}`;
+  if (activeDays >= 5 && independentSolvedCount >= 2) return 'PRO';
+  if (activeDays >= 4) return 'PERFORMER';
+  if (activeDays >= 2) return 'LEARNER';
+  return 'FRESHER';
+};
 
-  const status = taskStatus ? `Today's Task Status:
-Pending: ${taskStatus.pending.map(p => p.title).join(', ') || 'None (All caught up!)'}
-Completed: ${taskStatus.completed.map(c => c.title).join(', ') || 'None yet'}` : '';
+// ── Prompt builder ───────────────────────────────────────────────────────────
+exports.buildPrompt = (user, recentLogs, patterns, previousMessages, message, taskStatus, lastEnglishSession, extractedIntent) => {
+  const safeLogs = recentLogs || [];
+  const todayLog = safeLogs[0] || {};
+  const past5Summary = safeLogs.slice(1, 6);
+  const userLevel = calculateUserLevel(safeLogs, user?.streak || 0);
 
-  const memory = `Detected Patterns/Memories:
-${patterns.map(p => `[${p.type}] ${p.value} (Freq: ${p.frequency})`).join('\n') || 'None yet.'}`;
+  const contextData = {
+    detectedMode: (extractedIntent?.topics || []).join(', ') || 'General Chat',
+    level: userLevel,
+    today: {
+      date: new Date().toDateString(),
+      dsa: todayLog.dsa || { problems: 0, solvedWithoutHelp: false },
+      aptitude: todayLog.aptitude || { topics: [] },
+      english: todayLog.english || { minutes: 0 },
+      dev: todayLog.dev || { minutes: 0 }
+    },
+    history5Day: past5Summary.map(log => ({
+      score: log.score,
+      dsa: log.dsa?.problems,
+      solvedWithoutHelp: log.dsa?.solvedWithoutHelp,
+      dev: log.dev?.minutes,
+      date: log.date?.toISOString().split('T')[0]
+    })),
+    patterns: (patterns || []).map(p => `[${p.type}] ${p.value} (${p.frequency})`),
+    tasks: taskStatus || { pending: [], completed: [] },
+    english: lastEnglishSession ? {
+      score: lastEnglishSession.overall,
+      feedback: lastEnglishSession.feedback,
+      improve: lastEnglishSession.improve
+    } : null
+  };
 
-  const history = previousMessages.length
-    ? `Conversation History:\n${previousMessages.slice(-10).map(m => `${m.role === 'user' ? 'User' : 'Jerry'}: ${m.content}`).join('\n')}`
-    : '';
+  const systemInstructions = `You are an adaptive AI mentor system designed to track, analyze, and evolve a user's performance daily.
 
-  const personality = `You are "Jerry - Personal AI Brain", a senior backend engineer and AI architect mentor.
-Your goal is to guide the user to achieve their stated goals.
-You are direct, structured, encouraging but firm.
-Personalise every response using the user profile, recent activity, today's status, and detected patterns.
-If the user asks about their tasks or status, use "Today's Task Status" to provide a detailed explanation and encouragement.
-If Exam Mode is active, be extremely focused and shut down any off-topic distractions.
-Always respond in a concise, structured manner.`;
+Your current personality must reflect the user's progress level.
+CURRENT USER LEVEL: ${userLevel}
+DETECTED INTENT MODE: ${contextData.detectedMode}
 
-  return [personality, profile, logs, status, memory, history, `User: ${message}`]
-    .filter(Boolean)
-    .join('\n\n');
+-----------------------------------
+🎯 CORE BEHAVIOR
+-----------------------------------
+1. Always act like a personal mentor who:
+   - Tracks daily activities
+   - Analyzes performance
+   - Gives structured feedback
+   - Suggests next improvements
+
+2. Your tone must evolve:
+   - Beginner (FRESHER) → Simple, supportive, explanatory
+   - Intermediate (LEARNER/PERFORMER) → Analytical, structured, slightly challenging
+   - Advanced (PRO) → Strategic, concise, high-level, assumes expertise
+
+-----------------------------------
+ USER PROFILING SYSTEM
+-----------------------------------
+User Tiers:
+- FRESHER → little or no consistency, weak fundamentals
+- LEARNER → improving, building basics, moderate consistency
+- PERFORMER → consistent, solving problems, gaining confidence
+- PRO → high consistency, strong performance, strategic thinking
+
+----------------------------------
+ MODE-SPECIFIC LOGIC
+-----------------------------------
+- DAILY SUMMARY: When asked "What did I do today?", provide Task Summary, Performance Analysis, Behavioral Insight, and Improvement Suggestions.
+- DSA ANALYSIS: For problems (e.g. "problem 27"), identify topic, evaluate mastery, note mistake patterns, and suggest difficulty progression.
+- APTITUDE: Analyze concepts, accuracy/speed, weak areas, and give a specific next-day plan.
+- ENGLISH: Analyze grammar, vocabulary, sentence formation. Provide corrected examples and specific practice tasks.
+- DEVELOPMENT: Provide practical feedback on code/design, industry-level suggestions, and next feature ideas.
+
+-----------------------------------
+ STRICT RULES
+-----------------------------------
+- Never give generic advice.
+- Always refer to the User Context Data provided below.
+- Always be structured with Sections and Bullet points.
+- Always include a next actionable step.
+- Keep responses clear, punchy, and insightful.
+
+-----------------------------------
+🧠 USER CONTEXT DATA
+-----------------------------------
+### 👤 Profile
+Name: ${user?.name || 'User'}
+Goal: ${user?.goal || 'Crack a tech job'}
+
+### 📈 Predicted Level: ${userLevel}
+### 📊 Today's Activity
+${JSON.stringify(contextData.today, null, 2)}
+
+### 📅 Last 5 Days Performance
+${JSON.stringify(contextData.history5Day, null, 2)}
+
+### 🧠 Memory/Patterns
+${contextData.patterns.join('\n') || 'None yet'}
+
+### 📅 Today's Real Task Status
+- Pending: ${contextData.tasks.pending.map(t => t.title).join(', ') || 'None'}
+- Completed: ${contextData.tasks.completed.map(t => t.title).join(', ') || 'None'}
+
+### 🗣️ Latest English Feedback
+${contextData.english ? JSON.stringify(contextData.english, null, 2) : 'No recent sessions.'}
+
+-----------------------------------
+💬 CONVERSATION HISTORY
+${previousMessages.slice(-8).map(m => `${m.role === 'user' ? 'User' : 'Mentor'}: ${m.content}`).join('\n')}
+`;
+
+  return systemInstructions + `\n\nUser: ${message}`;
 };
 
 // ── Main response generator ───────────────────────────────────────────────────
-exports.generateResponse = async ({ user, recentLogs, patterns, message, previousMessages, extractedIntent, taskStatus }) => {
+exports.generateResponse = async ({ user, recentLogs, patterns, message, previousMessages, extractedIntent, taskStatus, lastEnglishSession }) => {
   try {
-    const prompt = exports.buildPrompt(user, recentLogs, patterns, previousMessages, message, taskStatus);
+    const prompt = exports.buildPrompt(user, recentLogs, patterns, previousMessages, message, taskStatus, lastEnglishSession, extractedIntent);
     const response = await chatAI(prompt);
     return response;
   } catch (error) {
-    console.error('[aiService] Gemini error:', error.message);
-
-    if (/rate.?limited/i.test(error.message)) {
-      return 'Jerry is currently overloaded. All AI keys are rate-limited — please try again in a moment.';
-    }
-
-    return 'Jerry is experiencing difficulties. Please try again later.';
+    console.error('[aiService] Mentorship link failure:', error.message);
+    return `Mentor Jerry is recalibrating your strategy. High traffic detected in the neural link. Please try again in 10 seconds.`;
   }
 };
 
-// ── Analysis helper (optional — use for summarisation tasks) ─────────────────
+// ── Analysis helper ──────────────────────────────────────────────────────────
 exports.analyseText = async (text) => {
   try {
     return await analysisAI(text);
@@ -77,3 +161,4 @@ exports.analyseText = async (text) => {
     throw error;
   }
 };
+

@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import axios from 'axios';
 
+const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: `${SERVER_URL}/api`,
 });
 
 // Add a request interceptor to add the JWT token to headers
@@ -33,7 +35,7 @@ export const useAuthStore = create((set) => ({
 
       const res = await api.get('/users/me');
       set({ user: res.data, isAuthenticated: true, loading: false });
-    } catch (err) {
+    } catch {
       localStorage.removeItem('token');
       set({ user: null, token: null, isAuthenticated: false, loading: false });
     }

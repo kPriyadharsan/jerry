@@ -1,6 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { chatAI, analysisAI } = require('../services/geminiService');
+const authMiddleware = require('../middleware/auth');
+
+// Apply auth to all routes
+router.use(authMiddleware);
 
 // POST /api/gemini/chat
 router.post('/chat', async (req, res) => {

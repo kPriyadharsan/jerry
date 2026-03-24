@@ -17,23 +17,18 @@ exports.initCronJobs = () => {
         // Fetch today's log
         const log = await DailyLog.findOne({ userId: user._id, date: { $gte: today } });
 
-        if (log && log.score > 0) {
-          // Update streak if score indicates active day
-          user.streak += 1;
-        } else {
-          // Reset streak if missed day (score 0 or no log)
-          user.streak = 0;
-
-          // Add weakness or pattern
+        if (!log || log.score === 0) {
+          // Add weakness or pattern if day was missed
           await Memory.findOneAndUpdate(
             { userId: user._id, type: 'pattern', value: 'Missed daily objective' },
             { $inc: { frequency: 1 } },
             { upsert: true, new: true }
           );
         }
-
-        user.lastActive = new Date();
+        
+        // No manual streak handling here anymore - streakService handles it reactively
         await user.save();
+
 
         // Optional: Save a separate Summary or use DailyLog notes
         // Assuming summarize action can be saved as a system memory for today

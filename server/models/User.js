@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   weaknesses: { type: [String], default: [] },
   examMode: { type: Boolean, default: false },
   streak: { type: Number, default: 0 },
+  lastActiveDate: { type: Date },
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

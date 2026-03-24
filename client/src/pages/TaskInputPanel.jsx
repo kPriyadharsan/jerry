@@ -1,7 +1,8 @@
 import React, { useState, useEffect, memo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, CheckCircle2, Award, Zap, BookOpen, Laptop, BookText } from 'lucide-react';
+import { CheckCircle, Clock, CheckCircle2, Award, Zap, BookOpen, Laptop, BookText, Info, ShieldCheck, HelpCircle } from 'lucide-react';
+import EnglishPracticeMini from '../components/EnglishPracticeMini';
 
 const FormInput = ({ label, icon: Icon, type = "text", value, onChange, placeholder, required = false, ...props }) => (
   <div className="space-y-2 group">
@@ -70,12 +71,43 @@ const DSAForm = memo(({ data, setData }) => (
       onChange={(e) => setData({ ...data, difficulty: e.target.value })} 
       options={['Easy', 'Medium', 'Hard']} 
     />
-    <div className="md:col-span-2">
-      <FormInput 
-        label="Time Taken (mins)" type="number" required placeholder="45" 
-        value={data.timeTaken} 
-        onChange={(e) => setData({ ...data, timeTaken: e.target.value })} 
-      />
+    <FormInput 
+      label="Time Taken (mins)" type="number" required placeholder="45" 
+      value={data.timeTaken} 
+      onChange={(e) => setData({ ...data, timeTaken: e.target.value })} 
+    />
+    
+    <div className="space-y-2">
+      <label className="text-xs font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5 px-1">
+        <ShieldCheck size={12} className="text-green-core" />
+        Solving Status
+      </label>
+      <div className="flex bg-black-mist/5 p-1 rounded-xl border border-green-core/10 h-[52px]">
+        <button
+          type="button"
+          onClick={() => setData({ ...data, solvedWithoutHelp: true })}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all ${
+            data.solvedWithoutHelp 
+              ? 'bg-green-core text-black-spore shadow-sm' 
+              : 'text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <ShieldCheck size={14} />
+          SELF-SOLVED
+        </button>
+        <button
+          type="button"
+          onClick={() => setData({ ...data, solvedWithoutHelp: false })}
+          className={`flex-1 flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all ${
+            !data.solvedWithoutHelp 
+              ? 'bg-orange-500/20 text-orange-600 border border-orange-500/30' 
+              : 'text-text-muted hover:text-text-primary'
+          }`}
+        >
+          <HelpCircle size={14} />
+          WITH HELP
+        </button>
+      </div>
     </div>
   </div>
 ));
@@ -105,24 +137,14 @@ const AppsForm = memo(({ data, setData }) => (
   </div>
 ));
 
-const EnglishForm = memo(({ data, setData }) => (
-  <div className="grid grid-cols-1 gap-6 animate-in slide-in-from-bottom-2 duration-500">
-    <FormInput 
-      label="Practice Area" icon={BookOpen} required placeholder="e.g. Vocabulary, Speaking" 
-      value={data.topic} 
-      onChange={(e) => setData({ ...data, topic: e.target.value })} 
-    />
-    <FormInput 
-      label="Minutes Spent" type="number" required placeholder="30" 
-      value={data.minutes} 
-      onChange={(e) => setData({ ...data, minutes: e.target.value })} 
-    />
-    <div className="bg-green-core/5 border border-green-core/10 rounded-xl p-4 flex items-center justify-between group hover:border-green-core/30 transition-all cursor-pointer">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-green-core/20 rounded-lg text-green-core"><Zap size={18} /></div>
-        <span className="text-sm font-semibold text-text-primary">Record Live Audio Log</span>
+const EnglishForm = memo(() => (
+  <div className="flex flex-col items-center justify-center p-4 min-h-[300px] animate-in slide-in-from-bottom-2 duration-500">
+    <div className="max-w-md w-full">
+      <div className="text-center mb-6">
+        <h4 className="text-lg font-bold text-black-spore">Voice Practice Log</h4>
+        <p className="text-sm text-text-secondary">Analyze your speaking skills directly from Jerry's Brain interface.</p>
       </div>
-      <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+      <EnglishPracticeMini />
     </div>
   </div>
 ));
@@ -150,16 +172,23 @@ export default function TaskInputPanel() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [fetchDashboardData]);
 
-  const [dsaData, setDsaData] = useState({ platform: 'LeetCode', topic: [], problems: '', difficulty: 'Medium', timeTaken: '' });
+  const [dsaData, setDsaData] = useState({ 
+    platform: 'LeetCode', 
+    topic: [], 
+    problems: '', 
+    difficulty: 'Medium', 
+    timeTaken: '',
+    solvedWithoutHelp: false 
+  });
   const [appsData, setAppsData] = useState({ topic: '', hours: '', questionsSolved: '', score: '' });
   const [englishData, setEnglishData] = useState({ topic: '', minutes: '' });
   const [devData, setDevData] = useState({ projectName: '', minutesWorked: '' });
 
   const tabs = [
     { id: 'DSA', icon: Laptop, label: 'DSA' },
-    { id: 'Apps/Concepts', icon: BookText, label: 'Apptitude' },
+    { id: 'Apps/Concepts', icon: BookText, label: 'Aptitude' },
     { id: 'English', icon: BookOpen, label: 'English' },
     { id: 'Development', icon: Zap, label: 'Build (Optional)' }
   ];
@@ -170,11 +199,14 @@ export default function TaskInputPanel() {
     let payload = {};
     
     if (activeTab === 'DSA') {
-      const problemCount = dsaData.problems.split(',').filter(x => x.trim().length > 0).length;
+      const problemArray = dsaData.problems.split(',').filter(x => x.trim().length > 0);
+      const problemCount = problemArray.length;
+      
       payload = { 
         dsa: { 
           ...dsaData, 
           problems: problemCount,
+          problemIdentifiers: problemArray.map(p => p.trim()),
           timeTaken: Number(dsaData.timeTaken)
         } 
       };
@@ -255,10 +287,22 @@ export default function TaskInputPanel() {
                           <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{t.type}</span>
                           <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
                         </div>
-                        <p className="text-sm font-bold text-black-spore group-hover:text-green-deep transition-colors">{t.title}</p>
-                     </div>
-                   ))
-                 )}
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold text-black-spore group-hover:text-green-deep transition-colors">{t.title}</p>
+                          <button 
+                            onClick={() => {
+                              useAppStore.getState().sendChatMessage(`I need help with this ${t.type} problem: ${t.title}. Please provide a structured analysis and next steps.`);
+                              navigate('/');
+                            }}
+                            className="shrink-0 p-1.5 bg-green-core/10 rounded-lg text-green-deep opacity-0 group-hover:opacity-100 transition-opacity hover:bg-green-core hover:text-white"
+                            title="Ask Jerry for help"
+                          >
+                            <Zap size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                </div>
             </section>
 
@@ -283,6 +327,8 @@ export default function TaskInputPanel() {
                  )}
                </div>
             </section>
+            
+            {/* EnglishPracticeMini removed from here as it is now in main form */}
           </aside>
 
           {/* Form Main Area */}
@@ -318,7 +364,7 @@ export default function TaskInputPanel() {
                   {/* Dynamic Form Content */}
                   {activeTab === 'DSA' && <DSAForm data={dsaData} setData={setDsaData} />}
                   {activeTab === 'Apps/Concepts' && <AppsForm data={appsData} setData={setAppsData} />}
-                  {activeTab === 'English' && <EnglishForm data={englishData} setData={setEnglishData} />}
+                  {activeTab === 'English' && <EnglishForm />}
                   {activeTab === 'Development' && <DevForm data={devData} setData={setDevData} />}
 
                   <div className="pt-8 border-t border-green-core/10 flex flex-col md:flex-row items-center justify-between gap-6">

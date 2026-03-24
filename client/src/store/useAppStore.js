@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { jerryChat } from '../lib/gemini';
+import { jerryChat, fetchChatHistory } from '../lib/gemini';
 
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
 
@@ -38,6 +38,7 @@ export const useAppStore = create((set, get) => ({
         pendingTasks: data.pendingTasks || [],
         completedTasks: data.completedTasks || [],
         optionalTasks: data.optionalTasks || [],
+        patternInsights: data.patternInsights || 'Jerry is refining your neural path...',
         isLoadingDashboard: false
       });
 
@@ -80,6 +81,22 @@ export const useAppStore = create((set, get) => ({
   ],
   isTyping: false,
 
+  loadChatHistory: async () => {
+    try {
+      const history = await fetchChatHistory();
+      if (history && history.length > 0) {
+        const mapped = history.map((m, idx) => ({
+          id: idx,
+          role: m.role,
+          content: m.content
+        }));
+        set({ messages: mapped });
+      }
+    } catch (err) {
+      console.error('Failed to load chat history:', err);
+    }
+  },
+
   sendChatMessage: async (content) => {
     const userMsg = { id: Date.now(), role: 'user', content };
     
@@ -96,7 +113,7 @@ export const useAppStore = create((set, get) => ({
         messages: [...state.messages, aiMsg],
         isTyping: false
       }));
-    } catch (err) {
+    } catch {
       const errorMsg = { id: Date.now() + 1, role: 'assistant', content: "Sorry, I'm having trouble connecting to my brain parts." };
       set((state) => ({
         messages: [...state.messages, errorMsg],
@@ -105,4 +122,3 @@ export const useAppStore = create((set, get) => ({
     }
   }
 }));
-
