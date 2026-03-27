@@ -1,14 +1,6 @@
-const { analysisAI: geminiAnalysisAI } = require('../geminiService');
-
-// Simple in-memory cache map 
-const analysisCache = new Map();
+const { analysisAI: geminiAnalysisAI } = require('../providers/gemini');
 
 async function analysisAI(appContext, intent) {
-  // Cache check per user per day to avoid redundant calls
-  const cacheKey = `${appContext?.userName || 'unknown'}-${intent}-${new Date().toDateString()}`;
-  if (analysisCache.has(cacheKey)) {
-    return analysisCache.get(cacheKey);
-  }
 
   const prompt = `
 Analyze the user data and performance strictly based on the following specific logs and states for the category: ${intent}
@@ -19,14 +11,21 @@ Return STRICTLY in this JSON format:
   "issues": ["issue 1", "issue 2"],
   "trend": "improving | declining | mixed | stagnant",
   "focus": "primary area to focus on",
-  "severity": "low | medium | high"
+  "severity": "low | medium | high",
+  "identifiedWeaknesses": ["topic A", "topic B"],
+  "overcomeWeaknesses": ["topic C"]
 }
 
 Rules:
 - DO NOT generate explanations outside the JSON.
 - DO NOT include markdown formatting or backticks around the JSON.
 - Extract patterns, weaknesses, and the general trend based on their activity.
+- "identifiedWeaknesses": Add a topic if the user is consistently getting low marks (e.g. < 60%) or frequently skipping tasks in that category.
+- "overcomeWeaknesses": Add a topic if it was previously a weakness but the user has shown significant improvement (e.g. marks > 80% or consistent completion).
+- Compare performance to global standards for "DSA", "English", "Aptitude" if specific comparison data is unavailable.
+- If a user skips a task, consider that a potential weakness if it happens multiple times.
   `;
+
 
   try {
     const aiResponseText = await geminiAnalysisAI(prompt);
@@ -35,8 +34,6 @@ Rules:
     const cleanJson = aiResponseText.replace(/```json/gi, '').replace(/```/g, '').trim();
     const result = JSON.parse(cleanJson);
 
-    // Save to cache
-    analysisCache.set(cacheKey, result);
 
     return result;
   } catch (error) {

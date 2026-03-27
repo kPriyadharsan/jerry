@@ -1,8 +1,8 @@
 const DailyLog = require('../models/DailyLog');
 const User = require('../models/User');
-const scoringService = require('../services/scoringService');
-const patternService = require('../services/patternService');
-const streakService = require('../services/streakService');
+const scoringService = require('../services/tracking/score');
+const patternService = require('../services/tracking/pattern');
+const streakService = require('../services/tracking/streak');
 
 exports.handleTask = async (req, res) => {
   try {

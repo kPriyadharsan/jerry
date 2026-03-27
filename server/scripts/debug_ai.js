@@ -1,4 +1,4 @@
-const aiRouter = require('./services/ai/aiRouter');
+const aiRouter = require('./services/ai/router');
 const mongoose = require('mongoose');
 require('dotenv').config();
 

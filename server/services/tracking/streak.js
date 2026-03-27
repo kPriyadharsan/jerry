@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const User = require('../../models/User');
 
 /**
  * Updates the user's streak when they perform an action today.

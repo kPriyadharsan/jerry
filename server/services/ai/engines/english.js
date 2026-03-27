@@ -1,4 +1,4 @@
-const { englishCoach } = require('../config/aiPrompts');
+const { englishCoach } = require('../prompts');
 
 // ─── Dedicated English Analysis Service ────────────────────────────────────
 // Uses specific English Gemini keys and a preferred model for audio analysis.
@@ -12,7 +12,7 @@ const KEYS = [
 // e.g.  ENGLISH_GEMINI_MODEL=gemini-2.5-flash-lite
 const PREFERRED_MODEL = process.env.ENGLISH_GEMINI_MODEL || 'gemini-2.0-flash';
 
-const { callWithOrchestration } = require('./geminiService');
+const { callWithOrchestration } = require('../providers/gemini');
 
 async function analyzeEnglishAudio(promptParts, userData) {
   const models = (process.env.ENGLISH_GEMINI_MODEL || 'gemini-2.0-flash')
@@ -20,7 +20,7 @@ async function analyzeEnglishAudio(promptParts, userData) {
     .map(m => m.trim())
     .filter(Boolean);
 
-  const fallbackModels = [...models, 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+  const fallbackModels = [...models, 'gemini-2.5-flash-lite', 'gemini-2.5-flash'];
 
   // Prepare the DB Snapshot block for the English Coach
   const dbContext = `

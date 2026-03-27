@@ -11,10 +11,11 @@ const userRoutes = require('./routes/userRoutes');
 const authRoutes = require('./routes/authRoutes');
 const geminiRoutes = require('./routes/geminiRoutes');
 const englishRoutes = require('./routes/englishRoutes');
+const voiceRoutes   = require('./routes/voiceRoutes');
 
 const rateLimit = require('express-rate-limit');
 
-const { initCronJobs } = require('./services/cronService');
+const { initCronJobs } = require('./services/cron/index');
 
 const app = express();
 app.use(express.json({ limit: '100mb' }));
@@ -61,6 +62,7 @@ const geminiLimiter = rateLimit({
 });
 app.use('/api/gemini', geminiLimiter, geminiRoutes);   // Gemini proxy — keys are server-side only
 app.use('/api/english', englishRoutes);
+app.use('/api/voice',   voiceRoutes);
 
 // Initialize Cron Jobs
 initCronJobs();

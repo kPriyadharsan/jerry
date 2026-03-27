@@ -7,13 +7,13 @@ import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import EnglishPracticePage from './pages/EnglishPracticePage';
 import VoicePracticePage from './pages/VoicePracticePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuthStore } from './store/authStore';
+import AnimatedLogoutButton from './components/AnimatedLogoutButton';
 
 export default function App() {
-  const { checkAuth } = useAuthStore();
+  const { checkAuth, user } = useAuthStore();
 
   useEffect(() => {
     checkAuth();
@@ -31,13 +31,28 @@ export default function App() {
           <Route
             path="/*"
             element={
-              <div className="flex h-screen w-full bg-bg-primary text-text-primary">
+              <div className="flex h-screen w-full bg-bg-primary text-text-primary relative font-sans">
                 <Sidebar />
                 <div className="flex-1 relative flex flex-col h-full overflow-hidden">
+                  {/* Unified Global Command Pill */}
+                  <div className="absolute top-6 right-6 z-[100] flex items-center bg-white/40 backdrop-blur-3xl border border-white/60 shadow-2xl rounded-[32px] p-2 transition-all duration-300 hover:shadow-green-core/5 pr-1.5">
+                    {/* User Section */}
+                    <div className="flex items-center gap-3 pl-3 pr-5 py-1 transition-all cursor-default">
+                      <div className="w-9 h-9 rounded-full bg-green-core flex items-center justify-center text-black-spore font-black shrink-0 transition-transform hover:scale-105 duration-500">
+                        {user?.name?.charAt(0) || 'U'}
+                      </div>
+                      <div className="text-[14px] font-black text-black-spore tracking-tight overflow-hidden">
+                        <p className="truncate max-w-[120px] leading-tight">{user?.name || 'User'}</p>
+                      </div>
+                    </div>
+
+                    {/* Integrated Logout Button (Animated Walking Figure) */}
+                    <AnimatedLogoutButton />
+                  </div>
+
                   <Routes>
                     <Route path="/" element={<ChatScreen />} />
                     <Route path="/tasks" element={<TaskInputPanel />} />
-                    <Route path="/english-practice" element={<EnglishPracticePage />} />
                     <Route path="/voice-practice" element={<VoicePracticePage />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />

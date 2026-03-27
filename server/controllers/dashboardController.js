@@ -1,7 +1,8 @@
 const User = require('../models/User');
 const DailyLog = require('../models/DailyLog');
 const Memory = require('../models/Memory');
-const taskService = require('../services/taskService');
+const taskService = require('../services/tracking/task');
+const streakService = require('../services/tracking/streak');
 
 exports.getDashboard = async (req, res) => {
   try {
@@ -13,8 +14,6 @@ exports.getDashboard = async (req, res) => {
     const { pending, completed, log: todayLog } = await taskService.getTaskStatus(userId);
     const todayScore = todayLog ? todayLog.score : 0;
 
-    const streakService = require('../services/streakService');
-    const User = require('../models/User');
     let freshUser = await User.findById(userId);
     
     // Auto-initialize streak if they have activity today but logic hasn't run yet

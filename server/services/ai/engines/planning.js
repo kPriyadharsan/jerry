@@ -1,4 +1,4 @@
-const { analysisAI: geminiAnalysisAI } = require('../geminiService');
+const { analysisAI: geminiAnalysisAI } = require('../providers/gemini');
 
 async function planningAI(analysisResult, intent, appContext) {
   const prompt = `

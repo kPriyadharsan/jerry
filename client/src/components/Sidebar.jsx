@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { MessageSquare, CheckSquare, BarChart2, Settings, Brain, LogOut, Mic2 } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { MessageSquare, CheckSquare, BarChart2, Settings, Brain, Mic2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useAuthStore } from '../store/authStore';
@@ -10,13 +10,7 @@ function cn(...inputs) {
 }
 
 export default function Sidebar() {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { user } = useAuthStore();
 
   const links = [
     { to: '/', icon: <MessageSquare size={20} />, label: 'Chat' },
@@ -51,26 +45,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* User profile */}
-      <div className="p-4 border-t border-green-core/10 flex items-center justify-between group">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-full bg-green-core flex items-center justify-center text-black-spore font-bold shrink-0">
-            {user?.name?.charAt(0) || 'U'}
-          </div>
-          <div className="text-sm overflow-hidden">
-            <p className="text-text-primary font-semibold truncate">{user?.name || 'User'}</p>
-            <p className="text-text-muted text-xs truncate capitalize">{user?.goal || 'Pro Setup'}</p>
-          </div>
-        </div>
-        <button 
-          onClick={handleLogout}
-          className="p-2 text-text-muted hover:text-red-500 transition-colors"
-          title="Logout"
-        >
-          <LogOut size={18} />
-        </button>
-      </div>
+      {/* Sidebar Footer space removed */}
     </div>
   );
 }
-

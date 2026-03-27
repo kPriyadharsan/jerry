@@ -22,7 +22,8 @@ const dailyLogSchema = new mongoose.Schema({
     topic: { type: String },
     minutes: { type: Number, default: 0 },
     avgOverallScore: { type: Number, default: 0 },
-    sessionsCount: { type: Number, default: 0 }
+    sessionsCount: { type: Number, default: 0 },
+    sessionSummaries: { type: [String], default: [] }
   },
   dev: {
     project: { type: String },

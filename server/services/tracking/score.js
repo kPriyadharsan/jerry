@@ -52,3 +52,17 @@ exports.calculateScore = (data) => {
 
   return Math.round(finalScore);
 };
+
+// ── Adaptive Tier Calculation (Ported from aiService) ─────────────────────────
+exports.calculateUserLevel = (recentLogs, streak) => {
+  const last5Days = (recentLogs || []).slice(0, 5);
+  const activeDays = last5Days.filter(log => (log.dsa?.problems > 0 || log.english?.minutes > 0 || log.dev?.minutes > 0)).length;
+  
+  // Independent DSA performance check
+  const independentSolvedCount = last5Days.filter(log => log.dsa?.problems > 0 && log.dsa?.solvedWithoutHelp).length;
+
+  if (activeDays >= 5 && independentSolvedCount >= 2) return 'PRO';
+  if (activeDays >= 4) return 'PERFORMER';
+  if (activeDays >= 2) return 'LEARNER';
+  return 'FRESHER';
+};

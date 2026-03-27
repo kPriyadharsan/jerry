@@ -1,7 +1,7 @@
 const cron = require('node-cron');
-const User = require('../models/User');
-const DailyLog = require('../models/DailyLog');
-const Memory = require('../models/Memory');
+const User = require('../../models/User');
+const DailyLog = require('../../models/DailyLog');
+const Memory = require('../../models/Memory');
 
 exports.initCronJobs = () => {
   // Run at 11:50 PM daily

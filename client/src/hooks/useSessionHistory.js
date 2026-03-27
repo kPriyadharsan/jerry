@@ -1,14 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import api from '../store/authStore';
+import { englishService } from '../services';
+import { useAuthStore } from '../store/authStore';
 
 export default function useSessionHistory() {
   const [sessions, setSessions] = useState([]);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await api.get('/english/history');
-      if (res.data && res.data.sessions) {
-        setSessions(res.data.sessions);
+      const data = await englishService.getHistory();
+      if (data && data.sessions) {
+        setSessions(data.sessions);
       }
     } catch (err) {
       console.error('Failed to fetch sessions history', err);

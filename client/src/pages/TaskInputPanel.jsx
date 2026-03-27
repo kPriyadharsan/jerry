@@ -1,166 +1,191 @@
 import React, { useState, useEffect, memo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Clock, CheckCircle2, Award, Zap, BookOpen, Laptop, BookText, Info, ShieldCheck, HelpCircle } from 'lucide-react';
-import EnglishPracticeMini from '../components/EnglishPracticeMini';
+import { CheckCircle, Clock, CheckCircle2, Award, Zap, BookOpen, Laptop, BookText, Info, ShieldCheck, HelpCircle, Mic2 } from 'lucide-react';
 
 const FormInput = ({ label, icon: Icon, type = "text", value, onChange, placeholder, required = false, ...props }) => (
   <div className="space-y-2 group">
-    <label className="text-xs font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5 px-1">
-      {Icon && <Icon size={12} className="text-green-core" />}
+    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2 px-1 opacity-70 group-focus-within:opacity-100 group-focus-within:text-green-core transition-all">
+      {Icon && <Icon size={12} />}
       {label}
     </label>
-    <div className="relative overflow-hidden rounded-xl border border-green-core/10 bg-black-mist/5 focus-within:border-green-core/40 focus-within:bg-white/50 transition-all duration-300">
+    <div className="relative rounded-2xl border border-white/40 bg-white/30 backdrop-blur-md focus-within:border-green-core/50 focus-within:bg-white/50 focus-within:shadow-[0_0_20px_rgba(76,221,30,0.05)] transition-all duration-500 overflow-hidden">
       <input
         type={type}
         required={required}
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        className="w-full bg-transparent px-4 py-3 outline-none text-text-primary placeholder:text-text-muted/50 font-medium"
+        className="w-full bg-transparent px-5 py-3.5 outline-none text-black-spore placeholder:text-text-muted/40 font-bold text-sm"
         {...props}
       />
-      <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-green-core transition-all duration-500 group-focus-within:w-full" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-0 bg-gradient-to-r from-transparent via-green-core to-transparent transition-all duration-700 group-focus-within:w-full" />
     </div>
   </div>
 );
 
 const FormSelect = ({ label, icon: Icon, value, onChange, options }) => (
   <div className="space-y-2 group">
-    <label className="text-xs font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5 px-1">
-      {Icon && <Icon size={12} className="text-green-core" />}
+    <label className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2 px-1 opacity-70 group-focus-within:opacity-100 group-focus-within:text-green-core transition-all">
+      {Icon && <Icon size={12} />}
       {label}
     </label>
-    <div className="relative overflow-hidden rounded-xl border border-green-core/10 bg-black-mist/5 focus-within:border-green-core/40 focus-within:bg-white/50 transition-all duration-300">
+    <div className="relative rounded-2xl border border-white/40 bg-white/30 backdrop-blur-md focus-within:border-green-core/50 focus-within:bg-white/50 transition-all duration-500 overflow-hidden">
       <select
         value={value}
         onChange={onChange}
-        className="w-full bg-transparent px-4 py-3 outline-none text-text-primary placeholder:text-text-muted/50 font-medium appearance-none"
+        className="w-full bg-transparent px-5 py-3.5 outline-none text-black-spore font-black text-sm appearance-none cursor-pointer"
       >
         {options.map((opt) => (
-          <option key={opt}>{opt}</option>
+          <option key={opt} className="font-bold">{opt}</option>
         ))}
       </select>
-      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-text-muted">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-black-spore/20">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path></svg>
       </div>
-      <div className="absolute bottom-0 left-0 h-[2px] w-0 bg-green-core transition-all duration-500 group-focus-within:w-full" />
+      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-0 bg-gradient-to-r from-transparent via-green-core to-transparent transition-all duration-700 group-focus-within:w-full" />
     </div>
   </div>
 );
 
 const DSAForm = memo(({ data, setData }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-500">
-    <FormSelect 
-      label="Platform" icon={Laptop} value={data.platform} 
-      onChange={(e) => setData({ ...data, platform: e.target.value })} 
-      options={['LeetCode', 'Codeforces', 'HackerRank']} 
-    />
-    <FormInput 
-      label="Topic Area" icon={BookOpen} placeholder="e.g. Arrays, Graph" 
-      value={data.topic.join(', ')} 
-      onChange={(e) => setData({ ...data, topic: e.target.value.split(',').map(s => s.trim()) })} 
-    />
-    <FormInput 
-      label="Problem IDs" required placeholder="e.g. 104, 32" 
-      value={data.problems} 
-      onChange={(e) => setData({ ...data, problems: e.target.value })} 
-    />
-    <FormSelect 
-      label="Difficulty" value={data.difficulty} 
-      onChange={(e) => setData({ ...data, difficulty: e.target.value })} 
-      options={['Easy', 'Medium', 'Hard']} 
-    />
-    <FormInput 
-      label="Time Taken (mins)" type="number" required placeholder="45" 
-      value={data.timeTaken} 
-      onChange={(e) => setData({ ...data, timeTaken: e.target.value })} 
-    />
+  <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-2 duration-500">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <FormSelect 
+        label="Environment" icon={Laptop} value={data.platform} 
+        onChange={(e) => setData({ ...data, platform: e.target.value })} 
+        options={['LeetCode', 'Codeforces', 'HackerRank']} 
+      />
+      <FormInput 
+        label="Context/Topics" icon={BookOpen} placeholder="e.g. Dynamic Programming" 
+        value={data.topic.join(', ')} 
+        onChange={(e) => setData({ ...data, topic: e.target.value.split(',').map(s => s.trim()) })} 
+      />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="md:col-span-1">
+        <FormInput 
+          label="Units/IDs" required placeholder="1, 45, 8" 
+          value={data.problems} 
+          onChange={(e) => setData({ ...data, problems: e.target.value })} 
+        />
+      </div>
+      <FormSelect 
+        label="Tier" value={data.difficulty} 
+        onChange={(e) => setData({ ...data, difficulty: e.target.value })} 
+        options={['Easy', 'Medium', 'Hard']} 
+      />
+      <FormInput 
+        label="Duration (m)" type="number" required placeholder="45" 
+        value={data.timeTaken} 
+        onChange={(e) => setData({ ...data, timeTaken: e.target.value })} 
+      />
+    </div>
     
-    <div className="space-y-2">
-      <label className="text-xs font-bold text-text-muted uppercase tracking-widest flex items-center gap-1.5 px-1">
-        <ShieldCheck size={12} className="text-green-core" />
-        Solving Status
-      </label>
-      <div className="flex bg-black-mist/5 p-1 rounded-xl border border-green-core/10 h-[52px]">
-        <button
-          type="button"
-          onClick={() => setData({ ...data, solvedWithoutHelp: true })}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all ${
-            data.solvedWithoutHelp 
-              ? 'bg-green-core text-black-spore shadow-sm' 
-              : 'text-text-muted hover:text-text-primary'
-          }`}
-        >
-          <ShieldCheck size={14} />
-          SELF-SOLVED
-        </button>
-        <button
-          type="button"
-          onClick={() => setData({ ...data, solvedWithoutHelp: false })}
-          className={`flex-1 flex items-center justify-center gap-2 rounded-lg text-xs font-bold transition-all ${
-            !data.solvedWithoutHelp 
-              ? 'bg-orange-500/20 text-orange-600 border border-orange-500/30' 
-              : 'text-text-muted hover:text-text-primary'
-          }`}
-        >
-          <HelpCircle size={14} />
-          WITH HELP
-        </button>
+    <div className="bg-black/5 rounded-2xl p-4 border border-white/50 backdrop-blur-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <label className="text-[9px] font-black text-text-muted uppercase tracking-[0.2em] flex items-center gap-2 px-1 opacity-60 shrink-0">
+          <ShieldCheck size={12} />
+          Combat Style
+        </label>
+        <div className="flex bg-white/40 p-1 rounded-xl border border-white/60 h-[42px] max-w-sm w-full md:w-auto overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setData({ ...data, solvedWithoutHelp: true })}
+            className={`flex-1 md:px-6 flex items-center justify-center gap-2 rounded-lg text-[10px] font-black tracking-widest transition-all duration-300 ${
+              data.solvedWithoutHelp 
+                ? 'bg-green-core text-black-spore shadow-sm' 
+                : 'text-text-muted hover:text-black-spore hover:bg-white/40'
+            }`}
+          >
+            <Zap size={13} fill={data.solvedWithoutHelp ? "currentColor" : "none"} />
+            PURE
+          </button>
+          <button
+            type="button"
+            onClick={() => setData({ ...data, solvedWithoutHelp: false })}
+            className={`flex-1 md:px-6 flex items-center justify-center gap-2 rounded-lg text-[10px] font-black tracking-widest transition-all duration-300 ${
+              !data.solvedWithoutHelp 
+                ? 'bg-amber-400 text-black-spore shadow-sm' 
+                : 'text-text-muted hover:text-black-spore hover:bg-white/40'
+            }`}
+          >
+            <HelpCircle size={13} />
+            ASSISTED
+          </button>
+        </div>
       </div>
     </div>
   </div>
 ));
 
 const AppsForm = memo(({ data, setData }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-bottom-2 duration-500">
+  <div className="flex flex-col gap-5 animate-in slide-in-from-bottom-2 duration-500">
     <FormInput 
-      label="Study Topic" icon={BookText} required placeholder="e.g. React Render Cycle" 
+      label="Subject/Concept" icon={BookText} required placeholder="e.g. React Render Cycle" 
       value={data.topic} 
       onChange={(e) => setData({ ...data, topic: e.target.value })} 
     />
-    <FormInput 
-      label="Hours Spent" type="number" step="0.5" required placeholder="2" 
-      value={data.hours} 
-      onChange={(e) => setData({ ...data, hours: e.target.value })} 
-    />
-    <FormInput 
-      label="Questions Solved" type="number" placeholder="5" 
-      value={data.questionsSolved} 
-      onChange={(e) => setData({ ...data, questionsSolved: e.target.value })} 
-    />
-    <FormInput 
-      label="Mastery Score (0-100)" type="number" placeholder="85" 
-      value={data.score} 
-      onChange={(e) => setData({ ...data, score: e.target.value })} 
-    />
-  </div>
-));
-
-const EnglishForm = memo(() => (
-  <div className="flex flex-col items-center justify-center p-4 min-h-[300px] animate-in slide-in-from-bottom-2 duration-500">
-    <div className="max-w-md w-full">
-      <div className="text-center mb-6">
-        <h4 className="text-lg font-bold text-black-spore">Voice Practice Log</h4>
-        <p className="text-sm text-text-secondary">Analyze your speaking skills directly from Jerry's Brain interface.</p>
-      </div>
-      <EnglishPracticeMini />
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <FormInput 
+        label="Time (h)" type="number" step="0.5" required placeholder="2" 
+        value={data.hours} 
+        onChange={(e) => setData({ ...data, hours: e.target.value })} 
+      />
+      <FormInput 
+        label="Queries" type="number" placeholder="5" 
+        value={data.questionsSolved} 
+        onChange={(e) => setData({ ...data, questionsSolved: e.target.value })} 
+      />
+      <FormInput 
+        label="Neural Mastery" type="number" placeholder="85" 
+        value={data.score} 
+        onChange={(e) => setData({ ...data, score: e.target.value })} 
+      />
     </div>
   </div>
 ));
 
+const EnglishForm = memo(() => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-center justify-center p-12 bg-white/30 backdrop-blur-md rounded-3xl border border-green-core/10 animate-in fade-in zoom-in duration-500 min-h-[300px]">
+      <div className="w-20 h-20 bg-green-core/10 rounded-full flex items-center justify-center text-green-core mb-6 animate-pulse shadow-glow/10">
+        <Mic2 size={40} />
+      </div>
+      <h3 className="text-xl font-black text-black-spore mb-3">Speak to Jerry Directly</h3>
+      <p className="text-sm text-text-secondary text-center max-w-sm mb-8 font-medium">
+        English data is now automatically ingested during your voice practice sessions.
+      </p>
+      <button 
+        onClick={(e) => {
+          e.preventDefault();
+          navigate('/voice-practice');
+        }}
+        className="px-8 py-3.5 bg-green-core text-black-spore font-black text-xs rounded-2xl shadow-glow hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-3"
+      >
+        <Zap size={16} fill="currentColor" />
+        LAUNCH VOICE PRACTICE
+      </button>
+    </div>
+  );
+});
+
 const DevForm = memo(({ data, setData }) => (
-  <div className="grid grid-cols-1 gap-6 animate-in slide-in-from-bottom-2 duration-500">
-    <FormInput 
-      label="Project Name" icon={Laptop} required placeholder="e.g. Jerry AI Brain" 
-      value={data.projectName} 
-      onChange={(e) => setData({ ...data, projectName: e.target.value })} 
-    />
-    <FormInput 
-      label="Time Worked (mins)" type="number" required placeholder="120" 
-      value={data.minutesWorked} 
-      onChange={(e) => setData({ ...data, minutesWorked: e.target.value })} 
-    />
+  <div className="flex flex-col gap-6 animate-in slide-in-from-bottom-2 duration-500">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <FormInput 
+        label="Project Code" icon={Laptop} required placeholder="e.g. Jerry AI Core" 
+        value={data.projectName} 
+        onChange={(e) => setData({ ...data, projectName: e.target.value })} 
+      />
+      <FormInput 
+        label="Dev Time (min)" type="number" required placeholder="120" 
+        value={data.minutesWorked} 
+        onChange={(e) => setData({ ...data, minutesWorked: e.target.value })} 
+      />
+    </div>
   </div>
 ));
 
@@ -241,10 +266,10 @@ export default function TaskInputPanel() {
   };
 
   return (
-    <div className="flex-1 p-4 md:p-10 overflow-y-auto bg-gradient-to-br from-bg-primary via-bg-primary to-green-core/5 scroll-smooth">
-      <div className="max-w-5xl mx-auto space-y-10 py-6">
+    <div className="flex-1 p-4 md:px-10 md:py-6 overflow-hidden bg-gradient-to-br from-bg-primary via-bg-primary to-green-core/5 flex flex-col">
+      <div className="max-w-5xl mx-auto w-full h-full flex flex-col space-y-6">
         
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-green-core font-bold text-xs uppercase tracking-widest bg-green-core/10 w-fit px-3 py-1 rounded-pill">
               <Zap size={14} className="fill-green-core" />
@@ -253,88 +278,95 @@ export default function TaskInputPanel() {
             <h1 className="text-4xl md:text-5xl font-black font-display text-black-spore">Update Jerry's Brain</h1>
             <p className="text-text-secondary font-medium pl-1">Feed the core with your daily achievements.</p>
           </div>
-          <div className="hidden md:block">
-             <div className="bg-white/40 backdrop-blur-sm border border-green-core/20 rounded-2xl p-4 flex items-center gap-4">
-               <div className="w-12 h-12 bg-green-core rounded-xl flex items-center justify-center text-white shadow-glow">
-                 <Award size={24} />
-               </div>
-               <div>
-                 <p className="text-xs font-bold text-text-muted uppercase tracking-tighter">Current Readiness</p>
-                 <p className="text-xl font-bold text-black-spore">Combat Ready</p>
-               </div>
-             </div>
-          </div>
+          
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start overflow-hidden pb-4">
           
-          {/* Status Sidebar */}
-          <aside className="lg:col-span-4 space-y-8 order-2 lg:order-1">
-            <section className="bg-bg-glass backdrop-blur-xl rounded-3xl border border-white p-6 shadow-card hover:shadow-glow/5 transition-all duration-500">
-               <h3 className="text-lg font-black font-display text-black-spore mb-6 flex items-center gap-3">
-                 <Clock className="text-orange-500" size={20} />
-                 Pending Missions
-               </h3>
-               <div className="space-y-3">
-                 {pendingTasks.length === 0 ? (
-                   <div className="text-center py-6 px-4 bg-green-core/5 rounded-2xl border border-dashed border-green-core/20">
-                     <p className="text-sm font-bold text-green-deep">Maximum Optimization Achieved!</p>
+          {/* Unified Task Status Card */}
+          <aside className="lg:col-span-4 h-full overflow-hidden flex flex-col">
+            <div className="bg-white/50 backdrop-blur-2xl flex-1 flex flex-col rounded-3xl border border-white/80 shadow-xl overflow-hidden relative">
+               {/* Ambient glows */}
+               <div className="absolute -top-8 -right-8 w-36 h-36 bg-green-core/15 rounded-full blur-3xl pointer-events-none" />
+               <div className="absolute -bottom-8 -left-8 w-36 h-36 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+
+               {/* Header */}
+               <div className="px-6 pt-6 pb-4 shrink-0 flex items-center justify-between border-b border-black/5">
+                 <div>
+                   <p className="text-[9px] font-black uppercase tracking-[0.3em] text-black-spore/40 mb-0.5">Today's Progress</p>
+                   <h2 className="text-lg font-black text-black-spore tracking-tight">Task Board</h2>
+                 </div>
+                 <div className="flex items-center gap-2 bg-white/60 border border-white px-3 py-1.5 rounded-full shadow-sm">
+                   <div className="w-1.5 h-1.5 rounded-full bg-green-core animate-pulse" />
+                   <span className="text-[11px] font-black text-black-spore tabular-nums">
+                     {completedTasks.length}/{completedTasks.length + pendingTasks.length}
+                   </span>
+                 </div>
+               </div>
+
+               {/* Unified Task List */}
+               <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 space-y-2">
+                 {completedTasks.length === 0 && pendingTasks.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center h-full opacity-30 text-center pb-10">
+                     <Zap size={36} className="text-black-spore mb-3" />
+                     <p className="text-[11px] font-black uppercase tracking-widest text-black-spore">Add your first task</p>
                    </div>
                  ) : (
-                   pendingTasks.map((t, i) => (
-                     <div key={i} className="group p-4 bg-black-mist/5 rounded-2xl border border-transparent hover:border-green-core/20 hover:bg-white/40 transition-all cursor-default">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{t.type}</span>
-                          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.6)]" />
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-bold text-black-spore group-hover:text-green-deep transition-colors">{t.title}</p>
-                          <button 
-                            onClick={() => {
-                              useAppStore.getState().sendChatMessage(`I need help with this ${t.type} problem: ${t.title}. Please provide a structured analysis and next steps.`);
-                              navigate('/');
-                            }}
-                            className="shrink-0 p-1.5 bg-green-core/10 rounded-lg text-green-deep opacity-0 group-hover:opacity-100 transition-opacity hover:bg-green-core hover:text-white"
-                            title="Ask Jerry for help"
-                          >
-                            <Zap size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-               </div>
-            </section>
-
-            <section className="bg-bg-glass backdrop-blur-xl rounded-3xl border border-white p-6 shadow-card">
-               <h3 className="text-lg font-black font-display text-black-spore mb-6 flex items-center gap-3">
-                 <CheckCircle2 className="text-green-core" size={20} />
-                 Data Ingested
-               </h3>
-               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                 {completedTasks.length === 0 ? (
-                   <p className="text-sm text-text-muted italic text-center py-4">No data streams received yet.</p>
-                 ) : (
-                   completedTasks.map((t, i) => (
-                     <div key={i} className="flex items-center gap-4 p-3 bg-green-core/5 rounded-xl border border-green-core/10">
-                        <div className="p-2 bg-green-core rounded-lg text-white"><CheckCircle size={14} /></div>
-                        <div>
-                          <p className="text-xs font-black text-text-secondary uppercase">{t.type}</p>
-                          <p className="text-[13px] font-bold text-black-spore">{t.title}</p>
-                        </div>
-                     </div>
-                   ))
+                   <>
+                     {completedTasks.map((t, i) => (
+                       <div key={`done-${i}`} className="flex items-center gap-3.5 px-4 py-3.5 bg-white/40 rounded-2xl border border-green-core/10 hover:bg-white/70 hover:shadow-sm group transition-all duration-300">
+                         <div className="w-7 h-7 bg-green-core/15 rounded-xl flex items-center justify-center shrink-0">
+                           <CheckCircle2 size={14} className="text-green-core" />
+                         </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-black text-green-core/50 uppercase tracking-widest">{t.type}</p>
+                            <p className="text-[13px] font-black text-black-spore/50 line-clamp-2 line-through decoration-green-core/20">{t.title}</p>
+                          </div>
+                       </div>
+                     ))}
+                     {pendingTasks.map((t, i) => (
+                       <div key={`pend-${i}`} className="flex items-center gap-3.5 px-4 py-3.5 bg-white/60 rounded-2xl border border-orange-500/10 hover:bg-white/90 hover:border-orange-500/20 hover:shadow-sm group/item transition-all duration-300">
+                         <div className="w-7 h-7 bg-orange-500/10 rounded-xl flex items-center justify-center shrink-0">
+                           <div className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+                         </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-black text-orange-500/60 uppercase tracking-widest">{t.type}</p>
+                            <p className="text-[13px] font-black text-black-spore line-clamp-2 leading-tight">{t.title}</p>
+                          </div>
+                         <button
+                           onClick={() => { useAppStore.getState().sendChatMessage(`Help me with this ${t.type} task: ${t.title}`); navigate('/'); }}
+                           className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center opacity-0 group-hover/item:opacity-100 group-hover/item:bg-orange-500/10 group-hover/item:text-orange-600 hover:!bg-orange-500 hover:!text-white transition-all duration-200"
+                         >
+                           <Zap size={13} fill="currentColor" />
+                         </button>
+                       </div>
+                     ))}
+                   </>
                  )}
                </div>
-            </section>
-            
-            {/* EnglishPracticeMini removed from here as it is now in main form */}
+
+               {/* Footer Progress Bar */}
+               <div className="px-6 py-4 shrink-0 border-t border-black/5">
+                 <div className="flex items-center justify-between mb-2">
+                   <span className="text-[9px] font-black text-black-spore/40 uppercase tracking-widest">Completion</span>
+                   <span className="text-[11px] font-black text-black-spore">
+                     {completedTasks.length + pendingTasks.length === 0 ? 0 : Math.round((completedTasks.length / (completedTasks.length + pendingTasks.length)) * 100)}%
+                   </span>
+                 </div>
+                 <div className="h-1.5 bg-black/5 rounded-full overflow-hidden">
+                   <div
+                     className="h-full bg-gradient-to-r from-green-core to-emerald-400 rounded-full transition-all duration-700"
+                     style={{ width: `${completedTasks.length + pendingTasks.length === 0 ? 0 : Math.round((completedTasks.length / (completedTasks.length + pendingTasks.length)) * 100)}%` }}
+                   />
+                 </div>
+               </div>
+            </div>
           </aside>
 
           {/* Form Main Area */}
-          <main className="lg:col-span-8 order-1 lg:order-2">
-            <div className="bg-bg-glass backdrop-blur-xl rounded-3xl border border-white shadow-card overflow-hidden">
-              <nav className="flex bg-black-mist/5 p-2 gap-1 overflow-x-auto hide-scrollbar">
+          <main className="lg:col-span-8 order-1 lg:order-2 h-full min-h-0 flex flex-col">
+            <div className="bg-bg-glass flex-1 min-h-0 flex flex-col backdrop-blur-xl rounded-3xl border border-white shadow-card overflow-hidden">
+              <nav className="flex bg-black-mist/5 p-2 gap-1 overflow-x-auto hide-scrollbar shrink-0">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   return (
@@ -357,7 +389,7 @@ export default function TaskInputPanel() {
                 })}
               </nav>
               
-              <div className="p-8 md:p-12 relative min-h-[400px]">
+              <div className="p-8 md:p-12 relative flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col">
                 <div className="absolute top-0 left-0 w-32 h-32 bg-green-core/10 rounded-full blur-3xl -ml-16 -mt-16 pointer-events-none" />
                 
                 <form onSubmit={handleSubmit} className="space-y-10 relative">
@@ -367,26 +399,43 @@ export default function TaskInputPanel() {
                   {activeTab === 'English' && <EnglishForm />}
                   {activeTab === 'Development' && <DevForm data={devData} setData={setDevData} />}
 
-                  <div className="pt-8 border-t border-green-core/10 flex flex-col md:flex-row items-center justify-between gap-6">
-                    <p className="text-xs text-text-muted max-w-xs font-medium">
-                      Information processed here will be used to calibrate your neural score and pattern recognition modules.
-                    </p>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full md:w-auto px-10 py-4 bg-black-spore text-green-core font-black rounded-2xl shadow-xl hover:bg-green-core hover:text-black-spore hover:scale-105 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3 overflow-hidden group relative"
-                    >
-                      {isSubmitting ? (
-                        <div className="w-5 h-5 border-2 border-green-core border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <Zap size={18} className="group-hover:animate-bounce" />
-                          <span>SYNCHRONIZE DATA</span>
-                        </>
-                      )}
-                      <div className="absolute inset-0 bg-green-core/20 translate-y-12 group-hover:translate-y-0 transition-transform duration-300" />
-                    </button>
-                  </div>
+                  {activeTab !== 'English' && (
+                    <div className="pt-10 border-t border-green-core/10 flex flex-col md:flex-row items-center justify-between gap-8">
+                      <div className="flex-1 space-y-2">
+                        <p className="text-xs font-black text-black-spore/60 uppercase tracking-[0.2em] flex items-center gap-2">
+                          <ShieldCheck size={14} className="text-green-core" />
+                          Neural Integrity Verified
+                        </p>
+                        <p className="text-xs text-text-muted max-w-sm font-medium leading-relaxed">
+                          Your daily combat logs will be cross-referenced across Jerry's neural modules to optimize your learning path.
+                        </p>
+                      </div>
+
+                      {/* Modern Sleek Sync Button */}
+                      <div className="shrink-0 flex items-center">
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="relative px-5 py-3 bg-black-spore text-white rounded-xl font-black text-[10px] uppercase tracking-[0.15em] flex items-center gap-2.5 transition-all duration-300 hover:bg-green-core hover:text-black-spore hover:shadow-[0_4px_12px_rgba(76,221,30,0.2)] hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:pointer-events-none group overflow-hidden"
+                        >
+                          {isSubmitting ? (
+                            <div className="flex items-center gap-2 scale-90">
+                              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              <span className="opacity-70">SYNCING</span>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                              <span className="relative z-10 px-1">Execute Link</span>
+                              <div className="relative z-10 w-6 h-6 bg-white/5 rounded-lg flex items-center justify-center group-hover:bg-black/10 transition-colors">
+                                <Zap size={11} className="fill-current" />
+                              </div>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </div>
             </div>

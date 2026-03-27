@@ -1,5 +1,5 @@
-const DailyLog = require('../models/DailyLog');
-const Memory = require('../models/Memory');
+const DailyLog = require('../../models/DailyLog');
+const Memory = require('../../models/Memory');
 
 exports.updatePatterns = async (userId) => {
   try {

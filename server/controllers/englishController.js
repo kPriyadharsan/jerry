@@ -1,9 +1,10 @@
 const EnglishSession = require('../models/EnglishSession');
 const DailyLog = require('../models/DailyLog');
 const User = require('../models/User');
-const { analyzeEnglishAudio } = require('../services/englishAIService');
-const scoringService = require('../services/scoringService');
-const streakService = require('../services/streakService');
+const Memory = require('../models/Memory');
+const { analyzeEnglishAudio } = require('../services/ai/engines/english');
+const scoringService = require('../services/tracking/score');
+const streakService = require('../services/tracking/streak');
 
 exports.analyzeAudio = async (req, res) => {
   try {
@@ -108,6 +109,11 @@ exports.analyzeAudio = async (req, res) => {
       const currentAvg = log.english.avgOverallScore || 0;
       log.english.avgOverallScore = ((currentAvg * currentCount) + resultJSON.overall) / (currentCount + 1);
       log.english.sessionsCount = currentCount + 1;
+      
+      if (resultJSON.summary) {
+        if (!log.english.sessionSummaries) log.english.sessionSummaries = [];
+        log.english.sessionSummaries.push(resultJSON.summary);
+      }
 
       log.score = scoringService.calculateScore(log);
       

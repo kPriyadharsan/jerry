@@ -122,24 +122,7 @@ export default function ChatScreen() {
                 <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-[100px] animate-blob" />
             </div>
 
-            {/* Header / Info bar */}
-            <header className="px-6 py-4 bg-bg-glass/80 backdrop-blur-md border-b border-green-core/10 flex items-center justify-between shrink-0 z-10">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-core/10 rounded-xl text-green-core">
-                        <MessageSquare size={20} />
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-bold font-display text-text-primary flex items-center gap-2">
-                            Neural Dialogue
-                            <span className="text-[10px] bg-green-core/20 text-green-deep px-1.5 py-0.5 rounded-full uppercase tabular-nums">Sync: Active</span>
-                        </h2>
-                        <p className="text-[10px] text-text-muted font-medium tracking-wide">Jerry is evolving based on your task history.</p>
-                    </div>
-                </div>
-                <button className="p-2 hover:bg-black-mist rounded-lg transition-colors text-text-muted hover:text-green-core">
-                    <Zap size={18} />
-                </button>
-            </header>
+
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-2 scroll-smooth">
@@ -179,7 +162,7 @@ export default function ChatScreen() {
             </div>
 
             {/* Input Area */}
-            <div className="p-6 bg-white/40 backdrop-blur-2xl border-t border-green-core/10 shrink-0 relative">
+            <div className="p-6 bg-bg-primary/80 backdrop-blur-2xl border-t border-green-core/10 shrink-0 relative">
                 <div className="absolute -top-1 px-4 left-1/2 -translate-x-1/2">
                     <div className="bg-bg-primary border border-green-core/10 text-[9px] font-black uppercase text-text-muted px-3 py-1 rounded-full whitespace-nowrap tracking-widest shadow-sm">
                         Securing Neural Connection

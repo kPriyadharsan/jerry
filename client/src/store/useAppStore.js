@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-import { jerryChat, fetchChatHistory } from '../lib/gemini';
-
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
+import { dashboardService, taskService, chatService } from '../services';
 
 export const useAppStore = create((set, get) => ({
   // Settings
@@ -19,19 +17,13 @@ export const useAppStore = create((set, get) => ({
   fetchDashboardData: async () => {
     set({ isLoadingDashboard: true });
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${SERVER_URL}/api/dashboard`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error('Failed to fetch dashboard');
-      
-      const data = await res.json();
+      const data = await dashboardService.getSummary();
       
       set({
         todayScore: data.todayScore,
         streak: data.streak,
         weakArea: data.weaknesses?.[0] || 'None detected',
-        weeklyScores: data.last7DaysLogs.map(log => ({
+        weeklyScores: (data.last7DaysLogs || []).map(log => ({
           day: new Date(log.date).toLocaleDateString('en-US', { weekday: 'short' }),
           score: log.score
         })),
@@ -55,17 +47,8 @@ export const useAppStore = create((set, get) => ({
   
   submitTask: async (taskData) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${SERVER_URL}/api/task`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(taskData),
-      });
-
-      if (res.ok) {
+      const success = await taskService.updateProgress(taskData);
+      if (success) {
         get().fetchDashboardData();
         return true;
       }
@@ -83,12 +66,13 @@ export const useAppStore = create((set, get) => ({
 
   loadChatHistory: async () => {
     try {
-      const history = await fetchChatHistory();
-      if (history && history.length > 0) {
-        const mapped = history.map((m, idx) => ({
+      const data = await chatService.getHistory();
+      if (data && data.messages) {
+        const mapped = data.messages.map((m, idx) => ({
           id: idx,
           role: m.role,
-          content: m.content
+          content: m.content,
+          timestamp: m.timestamp
         }));
         set({ messages: mapped });
       }
@@ -106,9 +90,9 @@ export const useAppStore = create((set, get) => ({
     }));
     
     try {
-      const { response } = await jerryChat(content);
+      const data = await chatService.sendMessage(content);
       
-      const aiMsg = { id: Date.now() + 1, role: 'assistant', content: response };
+      const aiMsg = { id: Date.now() + 1, role: 'assistant', content: data.response };
       set((state) => ({
         messages: [...state.messages, aiMsg],
         isTyping: false

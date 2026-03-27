@@ -24,9 +24,7 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold font-display text-text-primary">
             Analytics Overview
           </h1>
-          <div className="text-sm px-4 py-2 bg-bg-secondary rounded-pill text-text-secondary font-medium">
-            Live Feed Active
-          </div>
+          
         </div>
 
         {/* Top KPI Cards */}
@@ -170,10 +168,10 @@ export default function Dashboard() {
                    <h4 className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Completed</h4>
                    {completedTasks?.length > 0 ? (
                      completedTasks.slice(0, 3).map((t, i) => (
-                       <div key={i} className="flex items-center gap-2 text-xs text-text-primary">
-                         <div className="w-1.5 h-1.5 rounded-full bg-green-core" />
-                         <span className="truncate">{t.title}</span>
-                       </div>
+                        <div key={i} className="flex items-start gap-2 text-xs text-text-primary px-1 py-0.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-core mt-1 shrink-0" />
+                          <span className="leading-snug">{t.title}</span>
+                        </div>
                      ))
                    ) : (
                      <p className="text-xs text-text-muted italic">No tasks completed yet.</p>
@@ -185,9 +183,9 @@ export default function Dashboard() {
                    {pendingTasks?.length > 0 ? (
                      pendingTasks.slice(0, 3).map((t, i) => (
                        <div key={i} className="flex items-center justify-between gap-2 text-xs text-text-muted group/task">
-                         <div className="flex items-center gap-2 truncate">
-                           <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0" />
-                           <span className="truncate">{t.title}</span>
+                         <div className="flex items-start gap-2 min-w-0">
+                           <div className="w-1.5 h-1.5 rounded-full bg-orange-400 shrink-0 mt-1" />
+                           <span className="leading-snug">{t.title}</span>
                          </div>
                          <button 
                            onClick={() => {

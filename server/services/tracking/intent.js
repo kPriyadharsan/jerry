@@ -1,6 +1,19 @@
-const { chatAI } = require('./geminiService');
+const { chatAI } = require('../ai/providers/gemini');
 
 const cache = new Map();
+
+// Layer 0: Rule-based Meaning Extraction (Ported from aiService)
+exports.extractMeaning = async (text) => {
+  const intent = { action: 'chat', topics: [] };
+  const lower = text.toLowerCase();
+
+  if (lower.includes('dsa') || lower.includes('leetcode'))                   intent.topics.push('dsa');
+  if (lower.includes('english') || lower.includes('grammar'))                intent.topics.push('english');
+  if (lower.includes('dev') || lower.includes('build') || lower.includes('project')) intent.topics.push('dev');
+  if (lower.includes('apps') || lower.includes('aptitude'))                  intent.topics.push('aptitude');
+
+  return intent;
+};
 
 // Layer 1: Basic Keyword Matching
 const LAYER_1_RULES = [
@@ -35,6 +48,15 @@ exports.detectIntent = async (message, contextData = {}) => {
   // 1. Check Cache
   if (cache.has(lowerMsg)) {
     return cache.get(lowerMsg);
+  }
+
+  // 1.5. Layer 0 (Ported extractMeaning logic)
+  const extraction = await exports.extractMeaning(lowerMsg);
+  if (extraction.topics.length > 0) {
+    const primaryIntent = extraction.topics[0];
+    const result = { intent: primaryIntent, source: 'rule', response: null };
+    cache.set(lowerMsg, result);
+    return result;
   }
 
   // 2. Layer 1 (Fast Path)

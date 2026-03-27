@@ -3,10 +3,12 @@ const DailyLog = require('../models/DailyLog');
 const Memory = require('../models/Memory');
 const ChatHistory = require('../models/ChatHistory');
 const EnglishSession = require('../models/EnglishSession');
-const aiService = require('../services/aiService');
-const taskService = require('../services/taskService');
-const aiRouter = require('../services/ai/aiRouter');
-const intentService = require('../services/intentService');
+const VoiceMistakeLog = require('../models/VoiceMistakeLog');
+const UserTopicHistory = require('../models/UserTopicHistory');
+const taskService = require('../services/tracking/task');
+const aiRouter = require('../services/ai/router');
+const intentService = require('../services/tracking/intent');
+const { suggestNextTopics, PROGRESSION_TOPICS } = require('../services/ai/engines/topicSuggestion');
 
 exports.handleChat = async (req, res) => {
   try {
@@ -51,13 +53,26 @@ exports.handleChat = async (req, res) => {
     // 7. Fetch Latest English session
     const lastEnglishSession = await EnglishSession.findOne({ userId }).sort({ createdAt: -1 });
 
+    // 7b. Fetch recent voice practice mistake logs for Jerry context
+    const voiceMistakeHistory = await VoiceMistakeLog.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
+
+    // 7c. Compute exact next recommended topic from engine
+    const topicHistory = await UserTopicHistory.find({ userId }).sort({ lastPracticed: -1 }).lean();
+    const topicSuggestions = await suggestNextTopics([], topicHistory, '');
+    const recommendedNextTopic = topicSuggestions[0] || PROGRESSION_TOPICS[0];
+
     // 8. Call AI Router pipeline
     const userData = {
       user,
       recentLogs,
       patterns,
       taskStatus,
-      lastEnglishSession
+      lastEnglishSession,
+      voiceMistakeHistory,
+      recommendedNextTopic,
     };
 
     const aiResponse = await aiRouter({
@@ -89,7 +104,15 @@ exports.getChatHistory = async (req, res) => {
       return res.json({ messages: [] });
     }
 
-    res.json({ messages: chatHistory.messages });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayMessages = (chatHistory.messages || []).filter(msg => {
+      const msgDate = new Date(msg.timestamp);
+      return msgDate >= today;
+    }).slice(-20);
+
+    res.json({ messages: todayMessages });
   } catch (error) {
     console.error('Get Chat History error:', error);
     res.status(500).json({ error: 'Internal server error' });

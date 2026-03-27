@@ -1,6 +1,6 @@
-const chatAI = require('./chatAI');
-const analysisAI = require('./analysisAI');
-const planningAI = require('./planningAI');
+const chatAI = require('./engines/chat');
+const analysisAI = require('./engines/analysis');
+const planningAI = require('./engines/planning');
 
 async function aiRouter({ intent, message, userData, context }) {
   const pastDaysLogs = userData.recentLogs || [];
@@ -40,7 +40,8 @@ async function aiRouter({ intent, message, userData, context }) {
         topic: latestLog.english?.topic || 'N/A',
         minutes: latestLog.english?.minutes || 0,
         avgOverallScore: latestLog.english?.avgOverallScore || 0,
-        sessionsCount: latestLog.english?.sessionsCount || 0
+        sessionsCount: latestLog.english?.sessionsCount || 0,
+        sessionSummaries: latestLog.english?.sessionSummaries || []
       },
       dev: {
         project: latestLog.dev?.project || 'N/A',
@@ -69,11 +70,10 @@ async function aiRouter({ intent, message, userData, context }) {
     dailyScore: log.score || 0
   }));
 
-  // Preserve patterns/memories for long-term context
-  if (userData.patterns && userData.patterns.length > 0) {
-    appContext.memoryPatterns = userData.patterns;
-  }
+  appContext.memoryPatterns = userData.patterns && userData.patterns.length > 0 ? userData.patterns : [];
   appContext.lastEnglishSession = userData.lastEnglishSession || null;
+  appContext.voiceMistakeHistory = userData.voiceMistakeHistory || [];
+  appContext.recommendedNextTopic = userData.recommendedNextTopic || null;
 
   // Intent is now primarily used for routing heavy analysis, not for filtering information.
   const msgLower = (message || '').toLowerCase();
@@ -81,6 +81,39 @@ async function aiRouter({ intent, message, userData, context }) {
 
   if (needsPlan || ['analysis', 'dsa', 'english', 'development', 'aptitude'].includes(intent)) {
     const analysis = await analysisAI(appContext, intent);
+
+    // Sync weaknesses back to User model if they were identified or overcome
+    if (userData.user && (analysis.identifiedWeaknesses?.length > 0 || analysis.overcomeWeaknesses?.length > 0)) {
+      const User = require('../../models/User');
+      const user = await User.findById(userData.user._id);
+      if (user) {
+        let changed = false;
+        
+        // Add new weaknesses
+        (analysis.identifiedWeaknesses || []).forEach(w => {
+          if (!user.weaknesses.includes(w)) {
+            user.weaknesses.push(w);
+            changed = true;
+          }
+        });
+
+        // Remove overcome weaknesses
+        (analysis.overcomeWeaknesses || []).forEach(w => {
+          const index = user.weaknesses.indexOf(w);
+          if (index > -1) {
+            user.weaknesses.splice(index, 1);
+            changed = true;
+          }
+        });
+
+        if (changed) {
+          await user.save();
+          // Update appContext so planning and chat know about the change
+          appContext.userProfile.weaknesses = user.weaknesses;
+        }
+      }
+    }
+
     const plan = await planningAI(analysis, intent, appContext);
 
     return await chatAI({
@@ -88,7 +121,8 @@ async function aiRouter({ intent, message, userData, context }) {
       plan,
       context,
       appContext,
-      intent
+      intent,
+      analysis // Pass the full analysis for weakness tracking context
     });
   }
 

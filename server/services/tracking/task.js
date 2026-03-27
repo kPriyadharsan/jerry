@@ -1,4 +1,4 @@
-const DailyLog = require('../models/DailyLog');
+const DailyLog = require('../../models/DailyLog');
 
 exports.getTaskStatus = async (userId) => {
   const today = new Date();

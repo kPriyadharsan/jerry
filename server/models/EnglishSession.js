@@ -11,6 +11,7 @@ const englishSessionSchema = new mongoose.Schema({
   feedback: { type: String },
   strength: { type: String },
   improve: { type: String },
+  summary: { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model('EnglishSession', englishSessionSchema);
